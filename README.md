@@ -75,3 +75,34 @@ go get -u github.com/spf13/viper
 ### 2.6. 测试
 执行 `go run main.go` ，启动应用，可以看到服务器监听的端口是已经是配置文件里的端口号了。
 
+
+## 3. 日志初始化
+### 3.1. zap 和 lumberjack
+我们使用 zap 来记录日志，使用 lumberjack 来切割归档日志文件。首先安装 zap 和 lumberjack。
+```
+go get -u go.uber.org/zap
+go get -u gopkg.in/natefinch/lumberjack.v2
+```
+
+### 3.2. 编写 日志 的配置结构体
+新建 config/log.go 文件，定义 zap 和 lumberjack 初始化需要使用的配置项，大家可以根据自己的喜好去定制
+
+接下来别忘了在 config/config.go 文件中引入 Log 结构体。（记住，这个文件是 config.yaml 数据结构定义。所以，所有的配置项都应该加入到其中）
+
+接着就可以在 config.yaml 增加对应配置项了。
+
+### 3.3. 定义 utils 工具函数
+新建 utils/directory.go 文件，编写 PathExists 函数，用于判断路径是否存在
+
+### 3.4. 编写日志初始化代码
+新建 bootstrap/log.go 文件，编写代码，初始化日志 
+
+可以看到 跟我们初始化配置文件的方式是一样的。  
+所以，接着也需要在 global/app.go 中，添加 Log 成员属性。并且在 main.go 中添加初始化日志的代码。
+同样的，为了使日志功能方便调用，也将日志实例存入全局变量中 ( global/app.go )。
+
+### 3.5. 测试
+启动 main.go ，生成 storage/logs/app.log 文件，表示日志初始化成功
+
+
+
