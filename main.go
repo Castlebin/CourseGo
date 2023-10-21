@@ -1,11 +1,16 @@
 package main
 
 import (
+	"CourseGo/bootstrap"
+	"CourseGo/global"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
 func main() {
+	// 初始化配置文件
+	bootstrap.InitializeConfig()
+
 	r := gin.Default()
 
 	// 测试路由
@@ -13,6 +18,6 @@ func main() {
 		c.String(http.StatusOK, "pong")
 	})
 
-	// 启动服务器
-	r.Run(":8080")
+	// 启动服务器。改为使用配置文件中的端口
+	r.Run(":" + global.App.Config.App.Port)
 }
