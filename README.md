@@ -105,4 +105,49 @@ go get -u gopkg.in/natefinch/lumberjack.v2
 启动 main.go ，生成 storage/logs/app.log 文件，表示日志初始化成功
 
 
+## 4. 数据库初始化（GORM)
+### 4.1. GORM
+我们使用 GORM 来操作数据库。首先安装 GORM。我们在这里使用 MySQL 数据库，所以还需要安装对应的 MySQL 驱动。
+```
+go get -u gorm.io/gorm
+
+# GORM 官方支持 sqlite、mysql、postgres、sqlserver
+go get -u gorm.io/driver/mysql 
+```
+
+### 4.2. 编写数据库配置结构体
+新建 config/database.go 文件，自定义配置项，用于初始化数据库  
+
+之后别忘了在 config/config.go 文件中引入 Database 结构体。  
+
+接着就可以在 config.yaml 增加对应配置项了。  
+
+### 4.3. 自定义 Logger（使用文件记录日志）
+gorm 有一个默认的 logger ，由于日志内容是输出到控制台的，我们需要自定义一个写入器，将默认logger.Writer 接口的实现切换为自定义的写入器，上一篇引入了 lumberjack ，将继续使用它
+
+新建 bootstrap/db.go 文件，编写 getGormLogWriter 函数
+
+接下来，编写 getGormLogger 函数， 切换默认 Logger 使用的 Writer
+
+至此，自定义 Logger 就已经实现了，这里只简单替换了 logger.Writer 的实现，大家可以根据各自的需求做其它定制化配置  
+
+
+### 4.4.初始化数据库
+在 bootstrap/db.go 文件中，编写 InitializeDB 初始化数据库函数，以便于在 main.go 中调用
+
+### 4.5. 编写模型文件进行数据库迁移 
+新建 app/models/common.go 文件，定义公用的数据库表模型字段  
+
+新建 app/models/user.go 文件，定义 User 模型  
+
+在 bootstrap/db.go 文件中，编写数据库表初始化代码。并且在 initMySqlGorm 函数中调用它。
+
+
+### 4.6. 定义全局变量 DB
+在 global/app.go 中，添加 DB 成员属性。并且在 main.go 中添加初始化数据库的代码。
+
+### 4.7. 测试
+由于我们使用了本地的 MySQL 数据库，所以需要先启动 MySQL 服务。并且，建好 go-dev 库。
+
+启动 main.go ，可以看到数据库表 users 已经自动创建成功了。
 
