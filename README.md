@@ -151,3 +151,30 @@ gorm 有一个默认的 logger ，由于日志内容是输出到控制台的，�
 
 启动 main.go ，可以看到数据库表 users 已经自动创建成功了。
 
+
+## 5. 静态资源处理 & 优雅重启服务器
+这一篇将对路由进行分组调整，把定义路由的文件集中到同一个目录下，并处理前端项目打包后的静态文件。在 Go 1.8 及以上版本中，内置的 http.Server 提供了 Shutdown() 方法，支持平滑重启服务器，本次将使用它调整项目启动代码，若 Go 版本低于 1.8 可以使用 fvbock/endless 来替代
+
+### 5.1. 路由分组调整
+新建 routes/api.go 文件，用来存放 api 分组路由 
+
+新建 bootstrap/router.go 文件，用于项目启动时初始化路由。以及启动服务器，将 main.go 中的代码迁移过来  
+
+在 main.go 文件中调用 RunServer() 方法，启动服务器  
+
+
+### 5.2. 处理静态资源
+新建 static 目录，用于存放前端项目打包后的静态资源。github 代码库中复制本工程的 static 目录下的文件到这里 
+
+在 bootstrap/router.go 文件，setupRouter() 方法中编写相关静态资源的路由代码  
+
+启动 main.go ，访问 http://localhost:8888/ ，前端资源处理成功    
+
+
+### 5.3. 优雅重启/停止服务器
+在 bootstrap/router.go 文件中，调整 RunServer() 方法。加入优雅停机的代码  
+
+在 routes/api.go 中，添加一条测试路由 /test  
+
+启动 main.go，访问 http://localhost:8888/api/test ，然后立即使用 CTRL + C 停止服务器。可以看到服务器接收到中止命令后，依旧等待 /api/test 接口完成响应后才停止服务器
+

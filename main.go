@@ -3,12 +3,10 @@ package main
 import (
 	"CourseGo/bootstrap"
 	"CourseGo/global"
-	"github.com/gin-gonic/gin"
-	"net/http"
 )
 
 func main() {
-	// 初始化配置文件
+	// 初始化配置
 	bootstrap.InitializeConfig()
 
 	// 初始化日志
@@ -25,13 +23,6 @@ func main() {
 		}
 	}()
 
-	r := gin.Default()
-
-	// 测试路由
-	r.GET("/ping", func(c *gin.Context) {
-		c.String(http.StatusOK, "pong")
-	})
-
-	// 启动服务器。改为使用配置文件中的端口
-	r.Run(":" + global.App.Config.App.Port)
+	// 启动服务器
+	bootstrap.RunServer()
 }
