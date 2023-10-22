@@ -44,3 +44,5 @@ cmd/executorserver/version/version.txt
 
 *.log
 
+storage/app/public/local
+

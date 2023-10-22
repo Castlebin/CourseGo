@@ -3,6 +3,7 @@ package routes
 import (
 	"CourseGo/app/common/request"
 	"CourseGo/app/controllers/app"
+	"CourseGo/app/controllers/common"
 	"CourseGo/app/middleware"
 	"CourseGo/app/services"
 	"github.com/gin-gonic/gin"
@@ -74,5 +75,8 @@ func SetApiGroupRoutes(router *gin.RouterGroup) {
 		authRouter.POST("/auth/info", app.Info)
 
 		authRouter.POST("/auth/logout", app.Logout)
+
+		// 上传图片
+		authRouter.POST("/image_upload", common.ImageUpload)
 	}
 }

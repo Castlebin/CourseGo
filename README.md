@@ -402,4 +402,54 @@ config.yaml 的 jwt 属性下添加对应配置 `refresh_grace_period: 7200`   (
 curl --location --request POST 'http://localhost:8888/api/auth/info' --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2OTc5ODYwNTgsImp0aSI6IjEiLCJpc3MiOiJhcHAiLCJuYmYiOjE2OTc5NDE4NTh9.H_HQ8T8b47Rl_3WmmACLCRjlvtMmGzcnxM198AIY16w' --data ''
 ```
 
+## 10. 初始化多驱动文件系统 & 实现图片上传接口
+在项目中有时会需要用到不同驱动的文件系统，为了简化不同驱动间的操作，需要将操作 API 统一，这几天我简单封装了 go-storage 包，支持的驱动有本地存储、七牛云存储（kodo）、阿里云存储（oss），也支持自定义储存，该包代码比较简单，这里不过多赘述，本篇主要讲的如何在 Gin 框架中集成并使用它。首先，直接安装这个工具包
+```shell
+go get -u github.com/jassue/go-storage
+```
+
+### 10.1. 定义配置项
+新建 config/storage.go，定义各个驱动的配置项结构体，用于初始化文件系统
+
+config/config.go 添加 Storage 成员属性 
+
+config.yaml 添加对应配置项
+
+### 10.2. 初始化 Storage
+新建 bootstrap/storage.go 文件，编写初始化 Storage 代码
+
+在 global/app.go 中，为 Application 结构体添加成员方法 Disk() ，作为获取文件系统实例的统一入口
+
+在 main.go 中调用 bootstrap.InitializeStorage() ，初始化文件系统
+
+### 10.3. 实现图片上传接口
+为了统一管理文件的 url，我这里将把 url 存到 mysql 中
+
+新建 app/models/media.go 模型文件
+
+在 bootstrap/db.go 中，初始化 media 数据表
+
+新建 app/common/request/upload.go 文件，编写表单验证器
+
+新建 app/services/media.go 文件，编写图片上传相关逻辑
+
+新建 app/controllers/common/upload.go 文件，校验入参，调用 MediaService
+
+在 routes/api.go 文件添加路由 `router.POST("/common/upload", common.Upload)` 上传图片接口
+
+### 10.4. 测试
+启动服务  
+
+调用 http://localhost:8888/api/auth/login ，获取 token
+
+![获取 token](doc-resourse/user-login-success.png)
+
+添加 token 到请求头，调用 http://localhost:8888/api/image_upload ，上传成功，返回图片 url。
+
+![上传图片](doc-resourse/image-upload.png)
+
+查看数据库，发现也自动生成了 media 表，在该表中也会生成一条数据记录
+
+storage 目录下也会生成一张图片
+
 
