@@ -8,4 +8,6 @@ type Configuration struct { // 代表 config.yaml 的数据结构
 	Database Database `mapstructure:"database" json:"database" yaml:"database"` // 代表 config.yaml 的数据结构中的 database 属性，数据库配置
 
 	Jwt Jwt `mapstructure:"jwt" json:"jwt" yaml:"jwt"` // 代表 config.yaml 的数据结构中的 jwt 属性，jwt 配置
+
+	Redis Redis `mapstructure:"redis" json:"redis" yaml:"redis"`
 }

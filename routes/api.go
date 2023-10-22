@@ -72,5 +72,7 @@ func SetApiGroupRoutes(router *gin.RouterGroup) {
 		curl --location --request POST 'http://localhost:8888/api/auth/info' --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2OTc5ODYwNTgsImp0aSI6IjEiLCJpc3MiOiJhcHAiLCJuYmYiOjE2OTc5NDE4NTh9.H_HQ8T8b47Rl_3WmmACLCRjlvtMmGzcnxM198AIY16w' --data ''
 		*/
 		authRouter.POST("/auth/info", app.Info)
+
+		authRouter.POST("/auth/logout", app.Logout)
 	}
 }

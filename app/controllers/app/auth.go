@@ -4,6 +4,7 @@ import (
 	"CourseGo/app/common/request"
 	"CourseGo/app/common/response"
 	"CourseGo/app/services"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 )
 
@@ -34,4 +35,14 @@ func Info(c *gin.Context) {
 		return
 	}
 	response.Success(c, user)
+}
+
+// 退出登录
+func Logout(c *gin.Context) {
+	err := services.JwtService.JoinBlackList(c.Keys["token"].(*jwt.Token))
+	if err != nil {
+		response.BusinessFail(c, "登出失败")
+		return
+	}
+	response.Success(c, nil)
 }

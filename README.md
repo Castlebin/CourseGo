@@ -313,4 +313,61 @@ curl --location 'http://localhost:8888/api/auth/login' --header 'Content-Type: a
 curl --location --request POST 'http://localhost:8888/api/auth/info' --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2OTc5ODYwNTgsImp0aSI6IjEiLCJpc3MiOiJhcHAiLCJuYmYiOjE2OTc5NDE4NTh9.H_HQ8T8b47Rl_3WmmACLCRjlvtMmGzcnxM198AIY16w' --data ''
 ```
 
+## 8. 引入Redis & 解决 JWT 注销问题（黑名单策略）
+由于 JWT 是无状态的，只能等到它的有效期过了才会失效，服务端无法主动让一个 token 失效，为了解决这个问题，我这里使用黑名单策略来解决 JWT 的注销问题，简单来说就将用户主动注销的 token 加入到黑名单（Redis）中，并且必须设置有效期，否则将导致黑名单巨大的问题，然后在 Jwt 中间件鉴权时判断 token 是否在黑名单中
+
+### 8.1. 安装 Redis
+给工程安装 Redis 依赖包
+```
+go get -u github.com/go-redis/redis/v8
+```
+
+使用 docker 在本地启动一个 Redis 服务
+```
+docker run -itd --name redis -p 6379:6379 redis
+```
+
+### 8.2. 定义 Redis 配置项
+新建 config/redis.go 文件，定义 Redis 配置项的结构体，用于初始化 Redis
+
+在 config/config.go 中，添加 Redis 属性
+
+在 config/jwt.go 中，添加 JwtBlacklistGracePeriod 属性，表示 token 黑名单的宽限期，这样 token 加入黑名单后，还有一小段时间可以继续使用
+
+接下来就可以在 config.yaml 增加对应配置项了 
+
+### 8.3. 编写 Redis 初始化代码
+新建 bootstrap/redis.go 文件，编写 Redis 初始化代码
+
+在 global/app.go 中，Application 结构体添加 Redis 属性  
+
+在 main.go 中，调用 InitializeRedis()  ，初始化 Redis
+
+### 8.4. 编写黑名单相关逻辑
+新建 utils/md5.go 文件，编写 MD5() 用于 token 编码  
+
+在 app/services/jwt.go 中，编写黑名单的相关逻辑
+
+在 app/middleware/jwt.go 中，增加黑名单校验  
+
+### 8.5. 实现登出接口
+在 app/controllers/app/auth.go 中，编写 Logout() 登出接口
+
+在 routes/api.go 中的 authRouter 路由组下，添加路由 `router.POST("/auth/logout", app.Logout)`
+
+
+### 8.6. 测试
+使用 Postman，先将调用登录接口获取 Token
+![登录成功](doc-resourse/user-login-success.png)
+
+将 token 加入 Authorization 头，调用登出接口 http://localhost:8888/api/auth/logout ，如下图，成功返回
+![登出成功](doc-resourse/user-logout-success.png)
+
+```shell
+curl --location --request POST 'http://localhost:8888/api/auth/logout' --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2OTc5OTE1MDMsImp0aSI6IjEiLCJpc3MiOiJhcHAiLCJuYmYiOjE2OTc5NDczMDN9.sFuXq6aq4xEEKewWuSm7jBipxvbKA7dE_pM-0lmwNTw'
+```
+
+在 JwtBlacklistGracePeriod 黑名单宽限时间结束之后，继续调用登出接口将无法成功响应 (当前设置的宽限时间为 10 秒)
+
+![token 失效](doc-resourse/token-invalid.png)
 

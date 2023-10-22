@@ -32,5 +32,12 @@ database:
 jwt:
   secret: 3Bde3BGEbYqtqyEUzW3ry8jKFcaPH17fRmTmqE7MDr05Lwj95uruRKrrkb44TJ4s
   jwt_ttl: 43200
+  jwt_blacklist_grace_period: 10   # 黑名单宽限期。并非加入黑名单后立即失效，而是在宽限期后失效
 
+
+redis:
+  host: 127.0.0.1
+  port: 6379
+  db: 0
+  password:
 
