@@ -178,3 +178,73 @@ gorm 有一个默认的 logger ，由于日志内容是输出到控制台的，�
 
 启动 main.go，访问 http://localhost:8888/api/test ，然后立即使用 CTRL + C 停止服务器。可以看到服务器接收到中止命令后，依旧等待 /api/test 接口完成响应后才停止服务器
 
+## 6. 初始化 Validator & 封装 Response & 实现第一个接口
+Gin 自带验证器返回的错误信息格式不太友好，本篇将进行调整，实现自定义错误信息，并规范接口返回的数据格式，分别为每种类型的错误定义错误码，前端可以根据对应的错误码实现后续不同的逻辑操作，篇末会使用自定义的 Validator 和 Response 实现第一个接口
+
+### 6.1. 自定义验证器错误信息
+新建 app/common/request/validator.go 文件，编写自定义验证器相关接口、类型定义和方法  
+
+新建 app/common/request/user.go 文件，用来存放所有用户相关的请求结构体，并实现 Validator 接口  
+
+在 routes/api.go 中编写测试代码  
+
+启动服务器，使用 Postman 测试，自定义错误信息成功返回
+```shell
+curl --location 'http://localhost:8888/api/user/register' --header 'Content-Type: application/json' --data '{
+    "name": "张三"
+}'
+```
+
+### 6.2. 自定义验证器
+有一些验证规则在 Gin 框架中是没有的，这个时候我们就需要自定义验证器
+
+新建 utils/validator.go 文件，定义验证规则，后续有其他的验证规则将统一存放在这里 
+
+新建 bootstrap/validator.go 文件，定制 Gin 框架 Validator 的属性  
+
+在 main.go 中调用 bootstrap.InitializeValidator() 方法，初始化验证器
+
+注：由于在 InitializeValidator() 方法中，使用 RegisterTagNameFunc() 注册了自定义 json tag， 所以在 GetMessages() 中自定义错误信息 key 值时，需使用 json tag 名称
+
+重启服务器，使用 PostMan 测试，自定义验证器成功
+```
+curl --location 'http://localhost:8888/api/user/register' --header 'Content-Type: application/json' --data '{
+"name": "张三",
+"mobile": "12345678"
+}'
+```
+
+返回结果：
+```json
+{"error":"手机号码格式不正确"}
+```
+
+### 6.3. 自定义错误码
+新建 global/error.go 文件，将项目中可能存在的错误都统一存放到这里，为每一种类型错误都定义一个错误码，便于在开发过程快速定位错误，前端也可以根据不同错误码实现不同逻辑的页面交互
+
+### 6.4. 封装 Response
+新建 app/common/response/response.go 文件，定义 Response 结构体，用于规范接口返回的数据格式
+
+### 6.5. 实现用户注册接口 
+新建 utils/bcrypt.go 文件，编写密码加密及验证密码的方法   
+
+新建 app/services/user.go 文件，编写用户注册逻辑  
+
+新建 app/controllers/app/user.go 文件，校验入参，调用 UserService 注册逻辑  
+
+在 routes/api.go 中，添加路由 `router.POST("/auth/register", app.Register)`
+
+使用 Postman 调用接口 http://localhost:8888/api/auth/register ，如下图所示，接口返回成功，用户注册成功
+![用户注册成功](doc-resourse/user-register-success.png)
+
+```shell
+curl --location 'http://localhost:8888/api/auth/register' --header 'Content-Type: application/json' --data '{
+		    "name": "张三",
+		    "mobile": "18912345678",
+		    "password": "123456"
+		}'
+```
+
+查看数据库 users 表，数据已成功写入
+
+
