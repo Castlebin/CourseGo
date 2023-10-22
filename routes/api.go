@@ -3,6 +3,8 @@ package routes
 import (
 	"CourseGo/app/common/request"
 	"CourseGo/app/controllers/app"
+	"CourseGo/app/middleware"
+	"CourseGo/app/services"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"time"
@@ -52,4 +54,23 @@ func SetApiGroupRoutes(router *gin.RouterGroup) {
 		}'
 	*/
 	router.POST("/auth/register", app.Register)
+
+	// 用户登录
+	/*
+		curl --location 'http://localhost:8888/api/auth/login' --header 'Content-Type: application/json' --data '{
+		    "mobile": "18912345678",
+		    "password": "123456"
+		}'
+	*/
+	router.POST("/auth/login", app.Login)
+
+	// 需要登录保护的路由
+	authRouter := router.Group("").Use(middleware.JWTAuth(services.AppGuardName))
+	{
+		// 获取用户信息
+		/* 将 login 接口返回的 token 放到请求头中，请求头的 key 为 Authorization，value 为 Bearer + 空格 + token
+		curl --location --request POST 'http://localhost:8888/api/auth/info' --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2OTc5ODYwNTgsImp0aSI6IjEiLCJpc3MiOiJhcHAiLCJuYmYiOjE2OTc5NDE4NTh9.H_HQ8T8b47Rl_3WmmACLCRjlvtMmGzcnxM198AIY16w' --data ''
+		*/
+		authRouter.POST("/auth/info", app.Info)
+	}
 }

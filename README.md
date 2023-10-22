@@ -248,3 +248,69 @@ curl --location 'http://localhost:8888/api/auth/register' --header 'Content-Type
 查看数据库 users 表，数据已成功写入
 
 
+## 7. 实现登录接口 & jwt 鉴权中间件
+这一篇将使用 jwt-go 包来完成登录接口，颁发 token 令牌，并编写 jwt 中间件对 token 统一鉴权，避免在各个 controller 重复编写鉴权逻辑
+
+### 7.1. 安装 jwt-go 包
+```
+go get -u github.com/dgrijalva/jwt-go
+```
+
+### 7.2. 定义 jwt 配置项
+新建 config/jwt.go 文件，定义 jwt 配置项的结构体，用于初始化 jwt
+
+在 config/config.go 中，添加 Jwt 属性  
+
+config.yaml 添加对应配置  
+
+### 7.3. 编写颁发 Token 逻辑
+新建 app/services/jwt.go 文件，编写颁发 Token 逻辑   
+
+CreateToken 方法需要接收一个 JwtUser 实例对象，我们需要将 app/models/user.go 用户模型实现 JwtUser 接口， 后续其他的用户模型都可以通过实现 JwtUser 接口，来调用 CreateToken() 颁发 Token
+
+### 7.4. 编写登录逻辑
+在 app/common/request/user.go 中，新增 Login 验证器结构体  
+
+在 app/services/user.go 中，编写 Login() 登录逻辑
+
+新建 app/controllers/app/auth.go 文件，编写 Login() 进行入参校验，并调用 UserService 和 JwtService 服务，颁发 Token
+
+在 routes/api.go 中，添加路由 `router.POST("/auth/login", app.Login)`
+
+使用 Postman 调用 http://localhost:8888/api/auth/login ，如下图，成功返回 Token，登录成功
+
+![用户登录成功](doc-resourse/user-login-success.png)
+
+```shell
+curl --location 'http://localhost:8888/api/auth/login' --header 'Content-Type: application/json' --data '{
+		    "mobile": "18912345678",
+		    "password": "123456"
+		}'
+```
+
+### 7.5. 编写 jwt 鉴权中间件
+在 global/error.go 中，定义 TokenError 错误  
+
+在 app/common/response/response.go 中，编写 TokenFail() ，用于 token 鉴权失败统一返回  
+
+新建 app/middleware/jwt.go 文件，编写 jwt 鉴权中间件  
+
+### 7.6. 使用 jwt 中间件，实现获取用户信息接口
+在 routes/api.go 中，使用 JWTAuth 中间件，这样一来，客户端需要使用正确的 Token 才能访问在 authRouter 分组下的路由
+
+在 app/services/user.go 中，编写 GetUserInfo() 获取用户信息逻辑
+
+在 app/controllers/auth.go中，编写 Info()，通过 JWTAuth 中间件校验 Token 识别的用户 ID 来获取用户信息
+
+### 7.7. 测试
+使用 Postman，先将调用登录接口获取 Token 放入 Authorization 头，
+![设置 Token](doc-resourse/set-auth-header.png)
+
+再调用接口 http://localhost:8888/api/auth/info ，如下图，鉴权成功、成功返回用户信息
+![获取用户信息](doc-resourse/get-user-info.png)
+
+```shell
+curl --location --request POST 'http://localhost:8888/api/auth/info' --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2OTc5ODYwNTgsImp0aSI6IjEiLCJpc3MiOiJhcHAiLCJuYmYiOjE2OTc5NDE4NTh9.H_HQ8T8b47Rl_3WmmACLCRjlvtMmGzcnxM198AIY16w' --data ''
+```
+
+

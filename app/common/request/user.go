@@ -14,3 +14,8 @@ func (register Register) GetMessages() ValidatorMessages {
 		"password.required": "用户密码不能为空",
 	}
 }
+
+type Login struct {
+	Mobile   string `form:"mobile" json:"mobile" binding:"required,mobile"`
+	Password string `form:"password" json:"password" binding:"required"`
+}
