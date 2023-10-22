@@ -453,3 +453,31 @@ config.yaml 添加对应配置项
 storage 目录下也会生成一张图片
 
 
+## 11. 使用文件记录错误日志 & 跨域处理
+Gin 框架的日志默认是在控制台输出，本篇将使用 Gin 提供的 RecoveryWithWriter() 方法，封装一个中间件，使用 lumberjack 作为的写入器，将错误日志写入文件中；同时使用 github.com/gin-contrib/cors ，作下跨域处理。
+
+### 11.1.  （更新 lumberjack 包 ，并）安装 cors 包
+```shell
+go get -u gopkg.in/natefinch/lumberjack.v2
+go get github.com/gin-contrib/cors
+```
+
+### 11.2. 编写 Recovery 中间件
+在 app/common/response/response.go 文件中，添加 ServerError() 方法，作为 RecoveryFunc
+
+新建 app/middleware/recovery.go 文件，编写 Recovery 中间件代码
+
+
+### 11.3. CORS 跨域处理
+新建 app/middleware/cors.go 文件，编写 CORS 中间件代码
+
+### 11.4. 使用中间件
+在 bootstrap/router.go 文件中，使用中间件 
+
+### 11.5. 测试
+为了演示，这里我故意将 config.yaml 中数据库端口写错。请求登录接口，中间件成功生效
+![中间件生效](doc-resourse/error-recovery.png)
+
+接着查看 storage/logs/app.log 文件，可以看到错误信息成功写入到文件，内容如下：
+![错误日志](doc-resourse/error-recovery-log.png)
+

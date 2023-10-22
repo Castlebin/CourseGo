@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"CourseGo/app/middleware"
 	"CourseGo/global"
 	"CourseGo/routes"
 	"context"
@@ -14,7 +15,14 @@ import (
 )
 
 func setupRouter() *gin.Engine {
-	router := gin.Default()
+	if global.App.Config.App.Env == "production" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+	router := gin.New()
+	router.Use(gin.Logger(), middleware.CustomRecovery())
+
+	// 跨域处理
+	// router.Use(middleware.Cors())
 
 	// 前端项目静态资源
 	router.StaticFile("/", "./static/dist/index.html")
@@ -45,6 +53,11 @@ func RunServer() {
 			log.Fatalf("listen: %s\n", err)
 		}
 	}()
+
+	// 服务器启动成功后，打印日志
+	startedLogInfo := "HTTP Server Started at port: " + global.App.Config.App.Port
+	log.Println(startedLogInfo)         // log 只会在 console 打印日志
+	global.App.Log.Info(startedLogInfo) // 自定义的日志打印到文件
 
 	// 等待中断信号以优雅地关闭服务器（设置 5 秒的超时时间）
 	quit := make(chan os.Signal)
