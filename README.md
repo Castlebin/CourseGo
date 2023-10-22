@@ -371,3 +371,35 @@ curl --location --request POST 'http://localhost:8888/api/auth/logout' --header 
 
 ![token 失效](doc-resourse/token-invalid.png)
 
+## 9. Token 续签 & 封装分布式锁
+如果将 token 的有效期时间设置过短，到期后用户需要重新登录，过于繁琐且体验感差，这里我将采用服务端刷新 token 的方式来处理。先规定一个时间点，比如在过期前的 2 小时内，如果用户访问了接口，就颁发新的 token 给客户端（设置响应头），同时把旧 token 加入黑名单，在上一篇中，设置了一个黑名单宽限时间，目的就是避免并发请求中，刷新了 token ，导致部分请求失败的情况；同时，我们也要避免并发请求导致 token 重复刷新的情况，这时候就需要上锁了，这里使用了 Redis 来实现，考虑到以后项目中可能会频繁使用锁，在篇头将简单做个封装
+
+### 9.1. 封装分布式锁
+新建 utils/str.go ，编写 RandString() 用于生成锁标识，防止任何客户端都能解锁
+
+新建 global/lock.go ，编写分布式锁相关接口和类型定义和方法
+
+### 9.2. 定义配置项
+在 config/jwt.go 中，增加 RefreshGracePeriod 属性
+
+config.yaml 的 jwt 属性下添加对应配置 `refresh_grace_period: 7200`   (单位：秒，表示失效前 2 小时访问，会颁发新的 token)
+
+### 9.3. 在 jwt 中间件中增加续签机制
+在 app/services/jwt.go 中，编写 GetUserInfo()， 根据不同客户端 token ，查询不同用户表数据 (目前只有 User 表)
+
+在 app/middleware/jwt.go 中，增加 token 续签机制的代码
+
+### 9.4. 测试
+修改 config.yaml 配置，暂时将 jwt 的 refresh_grace_period 设置一个较大的值，确保能满足续签条件 （免得要等 2 小时。可以直接设置为和 jwt_ttl 相同的值，这样一获取到 token，就要 token 了 ）
+
+调用 http://localhost:8888/api/auth/login ，获取 token  
+![获取 token](doc-resourse/user-login-success.png)
+
+添加 token 到请求头，调用 http://localhost:8888/api/auth/info ，查看响应头，New-Token 为新 token，New-Expires-In 为新 token 的有效期
+![token 续签](doc-resourse/token-renew.png)
+```shell
+# 获取用户信息 (记住改 token)
+curl --location --request POST 'http://localhost:8888/api/auth/info' --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2OTc5ODYwNTgsImp0aSI6IjEiLCJpc3MiOiJhcHAiLCJuYmYiOjE2OTc5NDE4NTh9.H_HQ8T8b47Rl_3WmmACLCRjlvtMmGzcnxM198AIY16w' --data ''
+```
+
+

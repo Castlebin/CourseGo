@@ -33,7 +33,7 @@ jwt:
   secret: 3Bde3BGEbYqtqyEUzW3ry8jKFcaPH17fRmTmqE7MDr05Lwj95uruRKrrkb44TJ4s
   jwt_ttl: 43200
   jwt_blacklist_grace_period: 10   # 黑名单宽限期。并非加入黑名单后立即失效，而是在宽限期后失效
-
+  refresh_grace_period: 7200  # 失效前两小时 (7200 秒)，访问的话刷新 token。如果这个值大于等于 jwt_ttl，则可以推断出，每次访问 api 都会刷新 token
 
 redis:
   host: 127.0.0.1
