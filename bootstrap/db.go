@@ -6,6 +6,7 @@ import (
 	"go.uber.org/zap"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"io"
@@ -66,6 +67,8 @@ func InitializeDB() *gorm.DB {
 	switch global.App.Config.Database.Driver {
 	case "mysql":
 		return initMySqlGorm()
+	case "postgres":
+		return initPostgreGorm()
 	default:
 		return initMySqlGorm()
 	}
@@ -99,14 +102,14 @@ func initMySqlGorm() *gorm.DB {
 		sqlDB.SetMaxIdleConns(dbConfig.MaxIdleConns)
 		sqlDB.SetMaxOpenConns(dbConfig.MaxOpenConns)
 
-		initMySqlTables(db) // 数据库表初始化
+		initTables(db) // 数据库表初始化
 
 		return db
 	}
 }
 
 // 数据库表初始化
-func initMySqlTables(db *gorm.DB) {
+func initTables(db *gorm.DB) {
 	err := db.AutoMigrate(
 		models.User{},
 		models.Media{},
@@ -114,5 +117,36 @@ func initMySqlTables(db *gorm.DB) {
 	if err != nil {
 		global.App.Log.Error("migrate table failed", zap.Any("err", err))
 		os.Exit(0)
+	}
+}
+
+// 初始化 postgresql gorm.DB
+func initPostgreGorm() *gorm.DB {
+	dbConfig := global.App.Config.Database
+
+	if dbConfig.Database == "" {
+		return nil
+	}
+
+	dsn := "host=" + dbConfig.Host +
+		" user=" + dbConfig.UserName +
+		" password=" + dbConfig.Password +
+		" dbname=" + dbConfig.Database +
+		" port=" + strconv.Itoa(dbConfig.Port) +
+		" sslmode=disable TimeZone=Asia/Shanghai"
+	if db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+		Logger:                                   getGormLogger(),
+	}); err != nil {
+		global.App.Log.Error("PostgreSQL connect failed, err:", zap.Any("err", err))
+		return nil
+	} else {
+		sqlDB, _ := db.DB()
+		sqlDB.SetMaxIdleConns(dbConfig.MaxIdleConns)
+		sqlDB.SetMaxOpenConns(dbConfig.MaxOpenConns)
+
+		initTables(db) // 数据库表初始化
+
+		return db
 	}
 }
