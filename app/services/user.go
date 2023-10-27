@@ -21,7 +21,13 @@ func (userService *userService) Register(params request.Register) (err error, us
 		err = errors.New("手机号已存在")
 		return
 	}
-	user = models.User{Name: params.Name, Mobile: params.Mobile, Password: utils.BcryptMake([]byte(params.Password))}
+	salt := utils.RandString(8)
+	user = models.User{
+		Name:     params.Name,
+		Mobile:   params.Mobile,
+		Password: utils.BcryptMake([]byte(params.Password + salt)),
+		Salt:     salt,
+	}
 	err = global.App.DB.Create(&user).Error
 	return
 }
@@ -29,7 +35,7 @@ func (userService *userService) Register(params request.Register) (err error, us
 // Login 登录
 func (userService *userService) Login(params request.Login) (err error, user *models.User) {
 	err = global.App.DB.Where("mobile = ?", params.Mobile).First(&user).Error
-	if err != nil || !utils.BcryptMakeCheck([]byte(params.Password), user.Password) {
+	if err != nil || !utils.BcryptMakeCheck([]byte(params.Password+user.Salt), user.Password) {
 		err = errors.New("用户名不存在或密码错误")
 	}
 	return
